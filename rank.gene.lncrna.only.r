@@ -99,5 +99,14 @@ write.table(BMI1all,"BMI1_genelncRNA_updated_720.txt",col.names = TRUE,row.names
 geneid_top1000<-as.data.frame(BMI1all$Geneid)
 write.table(geneid_top1000,"geneid_top1000.hg38.txt",col.names = FALSE,row.names = FALSE,quote = FALSE,sep = "\t")
 
+##top20genes##
+genes20<-filter(BMI1all,rank1<=23&gene_type=="protein_coding genes")
+write.table(genes20,"genes20_allcol.txt",quote = FALSE,col.names = TRUE,row.names = FALSE,sep="\t")
+genes20fortest<-as.data.frame(genes20$gene)
+write.table(genes20fortest,"genes20.txt",quote = FALSE,col.names = FALSE,row.names = FALSE,sep="\t")
+
+
+
+
 
 
