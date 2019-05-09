@@ -36,8 +36,9 @@ df.rpkm.sub.long[] <- lapply(df.rpkm.sub.long, function(x) as.numeric(as.charact
 
 ##quantiles of all columns##
 quants <- c(0.05,0.10,0.20,0.25,0.4,0.50,0.75)
-df.rpkm.sub.long.quantile<-apply( df.rpkm.sub.long[1:12] , 2 , quantile , probs = quants , na.rm = TRUE )
+df.rpkm.sub.long.quantile<-apply( df.rpkm.sub.long[1:14] , 2 , quantile , probs = quants , na.rm = TRUE )
 df.rpkm.sub.long.quantile<-as.data.frame(df.rpkm.sub.long.quantile)
+write.table(df.rpkm.sub.long.quantile,"df.rpkm.sub.long.quantile.txt",quote = FALSE,col.names = TRUE,row.names = FALSE,sep="\t")
 #ENSG00000230733.2 ENSG00000235280.2 ENSG00000244300.2 ENSG00000254531.1 ENSG00000255198.4 ENSG00000259330.1 ENSG00000260032.1
 #5%          0.8927452          1.867047          2.207025          13.29672          3.085909          8.552635          29.13948
 #10%         1.1205594          2.228413          2.614374          19.99545          3.737030          9.858740          33.18951
@@ -60,12 +61,17 @@ df.rpkm.sub.long.quantile<-as.data.frame(df.rpkm.sub.long.quantile)
 #  df.rpkm.sub.long$ENSG00000230733.2_status[i]<-ifelse(df.rpkm.sub.long$ENSG00000230733.2[i]>=median(df.rpkm.sub.long$ENSG00000230733.2),"high","low")
 #  df.rpkm.sub.long$ENSG00000235280.2_status[i]<-ifelse(df.rpkm.sub.long$ENSG00000235280.2[i]>=median(df.rpkm.sub.long$ENSG00000235280.2),"high","low")
 #}
-#function to assgin status to genes based on median expression##
+#function to assgin status to genes based on quantile 30 and median expression##
+status.q3<-function(x){
+  y<-ifelse(x>=quantile(x,probs=0.3,na.rm = TRUE),"high","low")
+}
+
+
 status<-function(x){
   y<-ifelse(x>=median(x),"high","low")
 }
 #df.rpkm.sub.long$ENSG00000230733.2_status<-status(df.rpkm.sub.long$ENSG00000230733.2)
-df.rpkm.sub.long.status<-apply(df.rpkm.sub.long,2,status)
+df.rpkm.sub.long.status<-apply(df.rpkm.sub.long,2,status.q3)
 df.rpkm.sub.long.status<-as.data.frame(df.rpkm.sub.long.status)
 df.rpkm.sub.long.status$sample<-rownames(df.rpkm.sub.long.status)
 df.rpkm.sub.long.status$sample_id<-str_replace_all(df.rpkm.sub.long.status$sample,'[.]',"-")
@@ -74,7 +80,7 @@ df.rpkm.sub.long.status$sample_id<-str_replace_all(df.rpkm.sub.long.status$sampl
 df.surv.prad<-df.surv[df.surv$cohort=="PRAD",]
 prad.surv.status<-full_join(df.surv.prad,df.rpkm.sub.long.status,by=c("barcode"="sample_id"))
 prad.surv.status<-prad.surv.status[!is.na(prad.surv.status$sample),]
-
+write.table(prad.surv.status,"prad.surv.status.txt",quote = FALSE,col.names = TRUE,row.names = FALSE,sep="\t")
 #[1] "patient"           "barcode"           "file_id"           "cohort"            "OS"                "OS_time"          
 #[7] "DSS"               "DSS_time"          "DFI"               "DFI_time"          "PFI"               "PFI_time"         
 #[13] "ENSG00000230733.2" "ENSG00000235280.2" "ENSG00000244300.2" "ENSG00000254531.1" "ENSG00000255198.4" "ENSG00000259330.1"
@@ -87,10 +93,11 @@ prad.surv.status<-prad.surv.status[!is.na(prad.surv.status$sample),]
 
 ##survival analysis##
 lncrnas_names<-c("DANCR","AC092171.4","MCF2L-AS1","GATA2-AS1","TUG1","FLJ20021","SNHG9","INAFM2", "LINC00657" ,"VPS9D1-AS1","CTC-459F4.1","ILF3-AS1","PAXIP1-AS1","CTD-2396E7.11")
-##disease specific##
+##for loop four types survival##
+##tried median for all 4types and quantile 30 for DSS, later one there is no significant lncrnas##
 for (i in 13:26){
   status<-prad.surv.status[,i]
-
+  ##disease specific##
 fit1<-survfit(Surv(DSS_time,DSS)~status,data=prad.surv.status)
 res1<-ggsurvplot(fit1,data=prad.surv.status,
            xlab = "Days",
@@ -103,7 +110,7 @@ res1<-ggsurvplot(fit1,data=prad.surv.status,
            linetype = "strata",
            legend.labs = c(paste0(names(prad.surv.status[i]),"-high"),paste0(names(prad.surv.status[i]),"-low"))
            )
-ggsave(paste0(names(prad.surv.status[i]),".DS.png"), plot = print(res1), width = 8, height = 8, dpi = 500)
+ggsave(paste0(names(prad.surv.status[i]),".DS.q30.png"), plot = print(res1), width = 8, height = 8, dpi = 500)
 
 ##overall survival##
 fit2<-survfit(Surv(OS_time,OS)~status,data=prad.surv.status)
